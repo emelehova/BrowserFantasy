@@ -27,28 +27,15 @@ jobs:
           xcode-select -p
           swift --version
 
-      - name: Normalize LF and strip BOM/bi-di (YAML-safe)
+      - name: Normalize line endings + strip BOM/bi-di
+        shell: bash
         run: |
-          python3 - << 'PY'
-import os, sys
-def sanitize(path):
-    with open(path, 'rb') as f:
-        b = f.read()
-    # Убираем BOM/bi-di, переводим CRLF->LF
-    b = b.replace(b'\xef\xbb\xbf', b'') \
-         .replace(b'\r\n', b'\n') \
-         .replace(b'\r', b'\n')
-    # Удаляем управляющие U+202A..U+202E, NBSP
-    for cp in [0x202A,0x202B,0x202C,0x202D,0x202E,0x00A0]:
-        b = b.replace(bytes([cp]), b'')
-    with open(path, 'wb') as f:
-        f.write(b)
-
-for root,_,files in os.walk('.'):
-    for fn in files:
-        if fn.endswith('.sh') or fn.endswith('.yml') or fn == 'Info.plist':
-            sanitize(os.path.join(root, fn))
-PY
+          set -euo pipefail
+          git config --global core.autocrlf false
+          mapfile -d '' FILES < <(find . -type f \( -name '*.sh' -o -name '*.yml' -o -name 'Info.plist' \) -print0)
+          for f in "${FILES[@]}"; do
+            perl -i -pe 'BEGIN{binmode(STDIN); binmode(STDOUT)} s/^\x{FEFF}//; s/\r\n/\n/g; s/\r/\n/g; s/[\x{202A}-\x{202E}\x{00A0}]//g;' "$f"
+          done
 
       - name: Make scripts executable
         run: |

@@ -1,4 +1,4 @@
-name: macOS Build (from scratch)
+name: macOS Build (clean)
 
 on:
   push:
@@ -11,18 +11,44 @@ jobs:
       fail-fast: false
       matrix:
         arch: [arm64, x86_64]
+
     env:
       APP_NAME: FantasyBorwser
-      ARCH: ${{ matrix.arch }}
       MACOSX_DEPLOYMENT_TARGET: "12.0"
+      ARCH: ${{ matrix.arch }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Normalize shell scripts line endings
+      - name: Show toolchain
         run: |
-          git config --global core.autocrlf false
-          find . -type f -name "*.sh" -print0 | xargs -0 -I{} bash -c 'LC_ALL=C sed -i "" "s/\r$//" "{}"'
+          sw_vers
+          xcode-select -p
+          swift --version
+
+      - name: Normalize LF and strip BOM/bi-di (YAML-safe)
+        run: |
+          python3 - << 'PY'
+import os, sys
+def sanitize(path):
+    with open(path, 'rb') as f:
+        b = f.read()
+    # Убираем BOM/bi-di, переводим CRLF->LF
+    b = b.replace(b'\xef\xbb\xbf', b'') \
+         .replace(b'\r\n', b'\n') \
+         .replace(b'\r', b'\n')
+    # Удаляем управляющие U+202A..U+202E, NBSP
+    for cp in [0x202A,0x202B,0x202C,0x202D,0x202E,0x00A0]:
+        b = b.replace(bytes([cp]), b'')
+    with open(path, 'wb') as f:
+        f.write(b)
+
+for root,_,files in os.walk('.'):
+    for fn in files:
+        if fn.endswith('.sh') or fn.endswith('.yml') or fn == 'Info.plist':
+            sanitize(os.path.join(root, fn))
+PY
 
       - name: Make scripts executable
         run: |
@@ -31,20 +57,31 @@ jobs:
 
       - name: Build (${{ matrix.arch }})
         shell: bash
-        run: ./build.sh
+        run: ./build.sh 2>&1 | tee build_${{ matrix.arch }}.log
         env:
           APP_NAME: ${{ env.APP_NAME }}
           ARCH: ${{ env.ARCH }}
           MACOSX_DEPLOYMENT_TARGET: ${{ env.MACOSX_DEPLOYMENT_TARGET }}
 
       - name: Package DMG (${{ matrix.arch }})
+        if: success()
         shell: bash
-        run: ./package-dmg.sh
+        run: ./package-dmg.sh 2>&1 | tee package_${{ matrix.arch }}.log
         env:
           APP_NAME: ${{ env.APP_NAME }}
           ARCH: ${{ env.ARCH }}
 
+      - name: Upload logs (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.arch }}
+          path: |
+            build_${{ matrix.arch }}.log
+            package_${{ matrix.arch }}.log
+
       - name: Upload DMG (${{ matrix.arch }})
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APP_NAME }}-${{ matrix.arch }}.dmg

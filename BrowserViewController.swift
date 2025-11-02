@@ -4,25 +4,21 @@ import WebKit
 final class BrowserViewController: NSViewController, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate {
     private var webView: WKWebView!
 
-    override func loadView() {
-        self.view = NSView()
-    }
+    override func loadView() { self.view = NSView() }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+
         let config = WKWebViewConfiguration()
         config.preferences.javaScriptEnabled = true
-        config.defaultWebpagePreferences.allowsContentJavaScript = true
         if #available(macOS 11.3, *) {
+            config.defaultWebpagePreferences.allowsContentJavaScript = true
             config.defaultWebpagePreferences.preferredContentMode = .recommended
         }
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
-        if #available(macOS 11.3, *) {
-            webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        }
         webView.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(webView)
@@ -38,11 +34,9 @@ final class BrowserViewController: NSViewController, WKNavigationDelegate, WKUID
         }
     }
 
-    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
-        download.delegate = self
-    }
-
-    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+    func webView(_ webView: WKWebView,
+                 decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
         if navigationResponse.canShowMIMEType == false {
             decisionHandler(.download)
         } else {
@@ -50,7 +44,16 @@ final class BrowserViewController: NSViewController, WKNavigationDelegate, WKUID
         }
     }
 
-    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping (URL?, WKDownload.Policy) -> Void) {
+    func webView(_ webView: WKWebView,
+                 navigationResponse: WKNavigationResponse,
+                 didBecome download: WKDownload) {
+        download.delegate = self
+    }
+
+    func download(_ download: WKDownload,
+                  decideDestinationUsing response: URLResponse,
+                  suggestedFilename: String,
+                  completionHandler: @escaping (URL?, WKDownload.Policy) -> Void) {
         let dir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
         completionHandler(dir.appendingPathComponent(suggestedFilename), .allow)
     }

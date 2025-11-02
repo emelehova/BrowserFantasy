@@ -12,7 +12,6 @@ OUT_DMG="${OUT_DIR}/${APP_NAME}-${ARCH}.dmg"
 VOL_NAME="${APP_NAME}"
 
 [ -d "$SRC_APP" ] || { echo "Missing $SRC_APP"; exit 3; }
-
 mkdir -p "$OUT_DIR"
 
 TMP_DMG="${OUT_DIR}/${APP_NAME}-${ARCH}-rw.dmg"

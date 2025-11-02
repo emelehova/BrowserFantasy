@@ -1,10 +1,8 @@
 import AppKit
-import WebKit
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
-    var window: NSWindow!
-    var controller: BrowserViewController!
+    private var window: NSWindow!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let rect = NSRect(x: 0, y: 0, width: 1200, height: 800)
@@ -15,9 +13,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         window.title = "FantasyBorwser"
-        controller = BrowserViewController()
-        window.contentViewController = controller
         window.center()
+        window.contentViewController = BrowserViewController()
         window.makeKeyAndOrderFront(nil)
     }
 

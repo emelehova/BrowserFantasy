@@ -8,8 +8,8 @@ set -x
 MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-12.0}"
 
 case "$ARCH" in
-  arm64)   TARGET="arm64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}" ;;
-  x86_64)  TARGET="x86_64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}" ;;
+  arm64)  TARGET="arm64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}" ;;
+  x86_64) TARGET="x86_64-apple-macosx${MACOSX_DEPLOYMENT_TARGET}" ;;
   *) echo "Unknown ARCH=$ARCH"; exit 2 ;;
 esac
 
@@ -25,10 +25,15 @@ BIN_PATH="${MACOS_DIR}/${APP_NAME}"
 rm -rf "$BUILD_DIR"
 mkdir -p "$MACOS_DIR" "$RES_DIR"
 
-# Info.plist
+# Проверим исходники
+test -f "AppDelegate.swift"
+test -f "BrowserViewController.swift"
+test -f "Info.plist"
+
+# Кладём Info.plist
 cp -f Info.plist "${CONTENTS_DIR}/Info.plist"
 
-# Компиляция Swift → бинарь внутри бандла
+# Компилим бинарь внутрь .app
 swiftc \
   -target "$TARGET" \
   -sdk "$SDK_PATH" \
@@ -41,8 +46,8 @@ swiftc \
 # Тип бандла
 printf "APPL????" > "${CONTENTS_DIR}/PkgInfo"
 
-# Ad-hoc подпись (обязательно для запуска на раннере)
+# Ad-hoc подпись
 codesign --force --sign - --timestamp=none "$APP_DIR"
 
-echo "=== BUILD TREE (${ARCH}) ==="
-find "$BUILD_DIR" -maxdepth 4 -print
+echo "=== OUTPUT TREE (${ARCH}) ==="
+find "$BUILD_DIR" -maxdepth 5 -print

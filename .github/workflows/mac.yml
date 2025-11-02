@@ -1,0 +1,51 @@
+name: macOS Build (from scratch)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    env:
+      APP_NAME: FantasyBorwser
+      ARCH: ${{ matrix.arch }}
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Normalize shell scripts line endings
+        run: |
+          git config --global core.autocrlf false
+          find . -type f -name "*.sh" -print0 | xargs -0 -I{} bash -c 'LC_ALL=C sed -i "" "s/\r$//" "{}"'
+
+      - name: Make scripts executable
+        run: |
+          chmod +x build.sh
+          chmod +x package-dmg.sh
+
+      - name: Build (${{ matrix.arch }})
+        shell: bash
+        run: ./build.sh
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+          ARCH: ${{ env.ARCH }}
+          MACOSX_DEPLOYMENT_TARGET: ${{ env.MACOSX_DEPLOYMENT_TARGET }}
+
+      - name: Package DMG (${{ matrix.arch }})
+        shell: bash
+        run: ./package-dmg.sh
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+          ARCH: ${{ env.ARCH }}
+
+      - name: Upload DMG (${{ matrix.arch }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.arch }}.dmg
+          path: dist/${{ matrix.arch }}/*.dmg

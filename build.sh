@@ -25,15 +25,12 @@ BIN_PATH="${MACOS_DIR}/${APP_NAME}"
 rm -rf "$BUILD_DIR"
 mkdir -p "$MACOS_DIR" "$RES_DIR"
 
-# Проверим исходники
 test -f "AppDelegate.swift"
 test -f "BrowserViewController.swift"
 test -f "Info.plist"
 
-# Кладём Info.plist
 cp -f Info.plist "${CONTENTS_DIR}/Info.plist"
 
-# Компилим бинарь внутрь .app
 swiftc \
   -target "$TARGET" \
   -sdk "$SDK_PATH" \
@@ -43,11 +40,8 @@ swiftc \
   BrowserViewController.swift \
   -o "$BIN_PATH"
 
-# Тип бандла
 printf "APPL????" > "${CONTENTS_DIR}/PkgInfo"
 
-# Ad-hoc подпись
 codesign --force --sign - --timestamp=none "$APP_DIR"
 
-echo "=== OUTPUT TREE (${ARCH}) ==="
 find "$BUILD_DIR" -maxdepth 5 -print
